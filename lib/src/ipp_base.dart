@@ -56,7 +56,7 @@ class IppPack {
 
   Uint8List? body;
 
-  IppPack({String? decode, String? jobUrl, File? sendFile,Uint8List? fileData, int? code, String msg=''}) {
+  IppPack({String? decode, String? jobUrl, File? sendFile,Uint8List? sendFileData, int? code, String msg=''}) {
     this.msg=msg;
     if (decode != null) {
       _decode(decode);
@@ -66,9 +66,9 @@ class IppPack {
       } else if (sendFile != null) {
         this.code = IppCodec.OPERATION_PRINT_JOB;
         body = sendFile.readAsBytesSync();
-      } else if (fileData != null) {
+      } else if (sendFileData != null) {
         this.code = IppCodec.OPERATION_PRINT_JOB;
-        body = fileData;
+        body = sendFileData;
       }
       if (code != null) this.code = code;
 
