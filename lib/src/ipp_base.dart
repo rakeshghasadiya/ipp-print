@@ -19,7 +19,7 @@ import 'codec.dart';
 ///
 
 class IppPack {
-  String _hex;
+  String _hex ="";
 
   static String ip = '192.168.8.8';
   static String url = 'http://$ip:631/ipp/print';
@@ -51,12 +51,12 @@ class IppPack {
   Map<String, dynamic> attr = {};
 
   int currentTag = 0;
-  String currentKey;
+  String currentKey="";
   String msg='';
 
-  Uint8List body;
+  Uint8List? body;
 
-  IppPack({String decode, String jobUrl, File sendFile, int code, String msg=''}) {
+  IppPack({String? decode, String? jobUrl, File? sendFile, int? code, String msg=''}) {
     this.msg=msg;
     if (decode != null) {
       _decode(decode);
@@ -107,7 +107,7 @@ class IppPack {
       }
       if (res is Map) {
         if (attrs[currentTag] == null) attrs[currentTag] = [];
-        attrs[currentTag].add(res);
+        attrs[currentTag]?.add(res);
       }
     }
   }
@@ -242,13 +242,13 @@ class IppPack {
 
   Uint8List build() {
     var byteList = hex.decode(buildHex());
-    if (body != null) byteList = byteList + body.toList();
+    if (body != null) byteList = byteList + body!.toList();
     return Uint8List.fromList(byteList);
   }
 
   static IOClient get ioClient => IOClient(HttpClient()..idleTimeout = Duration(milliseconds: 600));
 
-  Future<IppPack> request({Map<String, String> headers, Duration timeout}) async {
+  Future<IppPack> request({Map<String, String>? headers, Duration? timeout}) async {
     var error='';
     try{
       var headersMap = headers ?? {};
@@ -257,9 +257,9 @@ class IppPack {
       headersMap['transfer-encoding'] = 'chunked';
 
       var timeOuted = false;
-      final response = await ioClient.post(url, body: build(), headers: headersMap).timeout(timeout??Duration(seconds: 6), onTimeout: () {
+      final response = await ioClient.post(Uri.parse(url), body: build(), headers: headersMap).timeout(timeout??Duration(seconds: 6), onTimeout: () {
         timeOuted = true;
-        return null;
+        return Future.value(null);
       });
       if (response == null) {
         return IppPack(code: timeOuted ? IppCodec.clientErrorTimeout : IppCodec.clientErrorBadRequest);

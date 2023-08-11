@@ -1,4 +1,3 @@
-import 'package:alm/alm.dart';
 import 'package:html/parser.dart';
 import 'dart:io';
 import 'package:http/http.dart';
@@ -29,7 +28,7 @@ class _NetPrinter {
   String reason = 'UnAvailable';
 
   String get status => '$brand-$code-$reason';
-  int code = IppCodec.PRINT_UNKNOWN;
+  int? code = IppCodec.PRINT_UNKNOWN;
 
   Map<String, int> pairCodes = {
     'UnAvailable': IppCodec.PRINT_OFFLINE,
@@ -86,9 +85,9 @@ class _NetPrinter {
     if (isEpson) headers['Cookie'] = 'EPSON_COOKIE_LANG=lang_b&1/lang_a&1';
     Response response;
     if (body != null) {
-      response = await ioClient.post('$basicUrl/$url', body: body, headers: headers).timeout(timeout, onTimeout: () => null);
+      response = await ioClient.post(Uri.parse('$basicUrl/$url'), body: body, headers: headers).timeout(timeout);
     } else {
-      response = await ioClient.get('$basicUrl/$url', headers: headers).timeout(timeout, onTimeout: () => null);
+      response = await ioClient.get(Uri.parse('$basicUrl/$url'), headers: headers).timeout(timeout);
     }
     try {
       if (debug) print('${url}->response.statusCode:${response.statusCode} $status');
@@ -137,20 +136,20 @@ class _NetPrinter {
       if (isEpson) {
         var document = parse(response.body);
         var sd = document.getElementsByTagName('fieldset');
-        var element = sd[2].nodes[1].text.replaceAll(' ', '').replaceAll('.', '').trim();
+        var element = sd[2].nodes[1].text?.replaceAll(' ', '').replaceAll('.', '').trim();
         //use simpler both hp and epson printers
-        element = element.replaceAll('Thepapercassetteisnotsetcorrectly', 'Papercase');
-        element = element.replaceAll('Papercase', 'insertOrCloseTray');
-        element = element.replaceAll('AnerrorhasoccurredPleaseconfirmtheindicatorormessageontheproduct', 'closeDoorOrCover');
-        reason = element.replaceAll('Paperjam', 'jamInPrinter');
+        element = element?.replaceAll('Thepapercassetteisnotsetcorrectly', 'Papercase');
+        element = element?.replaceAll('Papercase', 'insertOrCloseTray');
+        element = element?.replaceAll('AnerrorhasoccurredPleaseconfirmtheindicatorormessageontheproduct', 'closeDoorOrCover');
+        reason = element?.replaceAll('Paperjam', 'jamInPrinter')??"";
       }
       if (isHp) {
         final alphanumeric = RegExp(r'<(\w+:\w+)>(.*)</\1>', multiLine: true, caseSensitive: true).allMatches(response.body);
-        var info = <String, String>{};
+        var info = <String?, String?>{};
         alphanumeric.forEach((element) {
-          info[element.group(1)] = element.group(2);
+          info[element.group(1)??""] = element.group(2);
         });
-        reason = info['pscat:StatusCategory'];
+        reason = info['pscat:StatusCategory']??"";
       }
     } catch (e) {
       reason = 'UnAvailable';
@@ -212,7 +211,7 @@ class _NetPrinter {
     }
 
     await responseCall();
-    await Alm.delaySecond(3);
+    await Future.delayed(const Duration(seconds: 3));
     return await responseCall();
   }
 
@@ -220,7 +219,7 @@ class _NetPrinter {
     final response = await request('PRESENTATION/ADVANCED/INFO_PANELSNAPSHOT/TOP', body: {});
     var document = parse(response.body);
     if (debug) print('document:$document');
-    await Alm.delaySecond(3);
+    await Future.delayed(const Duration(seconds: 3));
     final res = await request('PRESENTATION/ADVANCED/INFO_PANELSNAPSHOT/PANELIMAGE.JPG');
     var file = File(path);
     file.writeAsBytesSync(res.bodyBytes);
@@ -249,7 +248,7 @@ class _NetPrinter {
       while (true) {
         timerCounter++;
         if (timerCounter > 10) break;
-        await Alm.delaySecond();
+        await Future.delayed(const Duration(seconds: 1));
         var isOpen = await _ippProtocolAllow();
         if (isOpen) return true;
       }
